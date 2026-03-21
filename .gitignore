@@ -1,0 +1,45 @@
+# OS artifacts
+.DS_Store
+._.DS_Store
+._*
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Data and large generated artifacts
+data/
+Code/data/
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.nc
+
+# Training logs / experiment outputs
+wandb/
+**/wandb/
+Save/
+**/Save/
+Code/RESAC_train/Figs/
+lightning_logs/
+events.out.tfevents.*
+*.wandb
+
+# Misc logs
+*.log
