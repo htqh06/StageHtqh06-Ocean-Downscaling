@@ -56,32 +56,49 @@ class Dataset_3var_train(torch.utils.data.Dataset):
         return torch.cat((sss, sst, ssh), dim=0)
     
 class Dataset_3var_valid(torch.utils.data.Dataset):
-    def __init__(self, data_path, file_name_sss, file_name_sst, file_name_ssh):
+    def __init__(self, data_path, file_name_sss, file_name_sst, file_name_ssh, crop_size=64, crop_positions=None):
         super().__init__()
         self.data_path = data_path
         self.file_name_sss = file_name_sss
         self.file_name_sst = file_name_sst
         self.file_name_ssh = file_name_ssh
+        self.crop_size = crop_size
 
         fname_sss = os.path.join(self.data_path, self.file_name_sss)
         fname_sst = os.path.join(self.data_path, self.file_name_sst)
         fname_ssh = os.path.join(self.data_path, self.file_name_ssh)
 
-        r1 = np.random.randint(0, 60)
-        r2 = np.random.randint(0, 60)
+        self.d_sss_full = torch.Tensor(np.load(fname_sss))
+        self.d_sst_full = torch.Tensor(np.load(fname_sst))
+        self.d_ssh_full = torch.Tensor(np.load(fname_ssh))
 
-        self.d_sss_12 = torch.Tensor(np.load(fname_sss)[:, :, r1:64 + r1, r2:64 + r2])
-        self.d_sst_12 = torch.Tensor(np.load(fname_sst)[:, :, r1:64 + r1, r2:64 + r2])
-        self.d_ssh_12 = torch.Tensor(np.load(fname_ssh)[:, r1:64 + r1, r2:64 + r2])
+        height = self.d_sss_full.shape[2]
+        width = self.d_sss_full.shape[3]
+        max_r1 = height - self.crop_size
+        max_r2 = width - self.crop_size
 
-        self.l_files = self.d_sss_12.shape[0]
+        default_positions = [
+            (0, 0),
+            (0, max_r2),
+            (max_r1, 0),
+            (max_r1, max_r2),
+            (max_r1 // 2, max_r2 // 2),
+        ]
+        self.crop_positions = crop_positions if crop_positions is not None else default_positions
+
+        self.l_files = self.d_sss_full.shape[0]
+        self.total_samples = self.l_files * len(self.crop_positions)
 
     def __len__(self):
-        return self.l_files
+        return self.total_samples
 
     def __getitem__(self, idx):
-        sss = self.d_sss_12[idx]
-        sst = self.d_sst_12[idx]
-        ssh = self.d_ssh_12[idx].unsqueeze(0)
+        sample_idx = idx % self.l_files
+        crop_idx = idx // self.l_files
+        r1, r2 = self.crop_positions[crop_idx]
+
+        sss = self.d_sss_full[sample_idx, :, r1:r1 + self.crop_size, r2:r2 + self.crop_size]
+        sst = self.d_sst_full[sample_idx, :, r1:r1 + self.crop_size, r2:r2 + self.crop_size]
+        ssh = self.d_ssh_full[sample_idx, r1:r1 + self.crop_size, r2:r2 + self.crop_size].unsqueeze(0)
 
         return torch.cat((sss, sst, ssh), dim=0)
